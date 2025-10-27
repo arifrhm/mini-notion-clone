@@ -1,8 +1,12 @@
-import { IsArray, ValidateNested } from 'class-validator';
+import { IsArray, ValidateNested, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class BlockOrder {
+  @IsInt()
   id: number;
+
+  @IsInt()
+  @Min(0)
   order_index: number;
 }
 

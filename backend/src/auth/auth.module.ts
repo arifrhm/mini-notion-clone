@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { User } from '../users/user.entity';
+import { ENV_CONFIG, DEFAULT_VALUES } from '../config/env.config';
 
 @Module({
   imports: [
@@ -15,9 +16,9 @@ import { User } from '../users/user.entity';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'your-super-secret-jwt-key',
+        secret: configService.get<string>(ENV_CONFIG.JWT_SECRET, DEFAULT_VALUES.JWT_SECRET),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '7d',
+          expiresIn: configService.get(ENV_CONFIG.JWT_EXPIRES_IN, DEFAULT_VALUES.JWT_EXPIRES_IN),
         },
       }),
       inject: [ConfigService],

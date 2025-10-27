@@ -88,16 +88,13 @@ export class BlocksService {
   async reorder(noteId: number, userId: number, reorderDto: ReorderBlocksDto) {
     await this.verifyNoteAccess(noteId, userId);
 
-    const promises = reorderDto.blocks.map(({ id, order_index }) =>
-      this.blockRepository.update(
-        { id, note_id: noteId },
-        { order_index }
-      )
-    );
-
-    await Promise.all(promises);
-    
-    await this.noteRepository.update(noteId, { last_edited_by: userId });
+    await this.blockRepository.manager.transaction(async (manager) => {
+      for (const { id, order_index } of reorderDto.blocks) {
+        // Update only blocks belonging to the note; skip if not found
+        await manager.update(Block, { id, note_id: noteId }, { order_index });
+      }
+      await manager.update(Note, noteId, { last_edited_by: userId });
+    });
 
     return { message: 'Blocks reordered successfully' };
   }

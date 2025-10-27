@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Request } from 'express';
+import { ENV_CONFIG, DEFAULT_VALUES } from '../config/env.config';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -19,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+      secretOrKey: process.env[ENV_CONFIG.JWT_SECRET] || DEFAULT_VALUES.JWT_SECRET,
     });
   }
 

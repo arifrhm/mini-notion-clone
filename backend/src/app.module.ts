@@ -7,6 +7,7 @@ import { BlocksModule } from './blocks/blocks.module';
 import { User } from './users/user.entity';
 import { Note } from './notes/note.entity';
 import { Block } from './blocks/block.entity';
+import { ENV_CONFIG, DEFAULT_VALUES } from './config/env.config';
 
 @Module({
   imports: [
@@ -17,11 +18,11 @@ import { Block } from './blocks/block.entity';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get('DATABASE_HOST'),
-        port: configService.get('DATABASE_PORT'),
-        username: configService.get('DATABASE_USER'),
-        password: configService.get('DATABASE_PASSWORD'),
-        database: configService.get('DATABASE_NAME'),
+        host: configService.get(ENV_CONFIG.DB_HOST, DEFAULT_VALUES.DB_HOST),
+        port: configService.get(ENV_CONFIG.DB_PORT, DEFAULT_VALUES.DB_PORT),
+        username: configService.get(ENV_CONFIG.DB_USERNAME, DEFAULT_VALUES.DB_USERNAME),
+        password: configService.get(ENV_CONFIG.DB_PASSWORD, DEFAULT_VALUES.DB_PASSWORD),
+        database: configService.get(ENV_CONFIG.DB_NAME, DEFAULT_VALUES.DB_NAME),
         entities: [User, Note, Block],
         synchronize: true,
       }),
