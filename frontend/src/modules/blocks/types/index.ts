@@ -27,6 +27,7 @@ export interface UpdateBlockDto {
   content?: string;
   order_index?: number;
   type?: BlockType;
+  expected_updated_at?: string;
 }
 
 export interface ReorderBlockDto {

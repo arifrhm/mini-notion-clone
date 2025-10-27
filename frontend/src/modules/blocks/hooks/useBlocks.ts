@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { blocksService } from '../services/blocksService';
 import { Block, BlockType, CreateBlockDto, ReorderBlockDto } from '../types';
+import { getSocket } from '@modules/collab/socket';
 
 export function useBlocks(noteId: number) {
   const [blocks, setBlocks] = useState<Block[]>([]);
@@ -34,6 +35,8 @@ export function useBlocks(noteId: number) {
 
       const response = await blocksService.create(noteId, newBlock);
       setBlocks(prev => [...prev, response.data]);
+      // emit realtime
+      try { getSocket().emit('sync:blockCreated', { noteId, block: response.data }); } catch {}
       return response.data;
     } catch (err: any) {
       setError(err.message || 'Failed to create block');
@@ -46,14 +49,23 @@ export function useBlocks(noteId: number) {
   const updateBlock = useCallback(async (blockId: number, content: string) => {
     try {
       setError(null);
+      const current = blocks.find(b => b.id === blockId);
+      const expected = current?.updated_at;
       setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, content } : b));
       
-      await blocksService.update(noteId, blockId, { content });
+      const response = await blocksService.update(noteId, blockId, { content, expected_updated_at: expected });
+      // apply server response (includes updated_at)
+      setBlocks(prev => prev.map(b => b.id === blockId ? response.data : b));
+      // emit realtime
+      try { getSocket().emit('sync:blockUpdated', { noteId, block: response.data }); } catch {}
     } catch (err: any) {
+      if (err?.response?.status === 409) {
+        await fetchBlocks();
+      }
       setError(err.message || 'Failed to update block');
       throw err;
     }
-  }, [noteId]);
+  }, [noteId, blocks, fetchBlocks]);
 
   const deleteBlock = useCallback(async (blockId: number) => {
     try {
@@ -61,6 +73,8 @@ export function useBlocks(noteId: number) {
       setError(null);
       await blocksService.delete(noteId, blockId);
       setBlocks(prev => prev.filter(b => b.id !== blockId));
+      // emit realtime
+      try { getSocket().emit('sync:blockDeleted', { noteId, blockId }); } catch {}
     } catch (err: any) {
       setError(err.message || 'Failed to delete block');
       throw err;
@@ -80,6 +94,8 @@ export function useBlocks(noteId: number) {
       }));
 
       await blocksService.reorder(noteId, reorderData);
+      // emit realtime
+      try { getSocket().emit('sync:blocksReordered', { noteId, order: reorderData }); } catch {}
     } catch (err: any) {
       setError(err.message || 'Failed to reorder blocks');
       throw err;

@@ -19,6 +19,8 @@ import {
 import { notesService } from '../services/notesService';
 import { useBlocks, BlockType, Block } from '@modules/blocks';
 import { SortableBlock } from '@modules/blocks/components/SortableBlock';
+import { getSocket } from '@modules/collab/socket';
+import { useAuth } from '@modules/auth';
 
 interface NoteTitleFormData {
   title: string;
@@ -30,6 +32,7 @@ export function NoteEditor() {
   const [noteTitle, setNoteTitle] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const { register, handleSubmit, setValue } = useForm<NoteTitleFormData>();
+  const [presence, setPresence] = useState<number[]>([]);
   
   const noteId = Number(id);
   const { blocks, setBlocks, loading, createBlock, updateBlock, deleteBlock, reorderBlocks, fetchBlocks } = useBlocks(noteId);
@@ -120,6 +123,46 @@ export function NoteEditor() {
     }
   };
 
+  useEffect(() => {
+    if (!noteId) return;
+    const s = getSocket();
+    s.emit('note:join', { noteId });
+
+    const onPresence = (users: number[]) => setPresence(users);
+    const onBlockCreated = (block: Block) => {
+      setBlocks(prev => {
+        if (prev.find(b => b.id === block.id)) return prev;
+        return [...prev, block].sort((a, b) => a.order_index - b.order_index);
+      });
+    };
+    const onBlockUpdated = (block: Block) => {
+      setBlocks(prev => prev.map(b => (b.id === block.id ? block : b)));
+    };
+    const onBlockDeleted = ({ id }: { id: number }) => {
+      setBlocks(prev => prev.filter(b => b.id !== id));
+    };
+    const onBlocksReordered = (order: Array<{ id: number; order_index: number }>) => {
+      setBlocks(prev => prev.map(b => {
+        const found = order.find(o => o.id === b.id);
+        return found ? { ...b, order_index: found.order_index } : b;
+      }).sort((a, b) => a.order_index - b.order_index));
+    };
+
+    s.on('presence', onPresence);
+    s.on('block:created', onBlockCreated);
+    s.on('block:updated', onBlockUpdated);
+    s.on('block:deleted', onBlockDeleted);
+    s.on('blocks:reordered', onBlocksReordered);
+
+    return () => {
+      s.off('presence', onPresence);
+      s.off('block:created', onBlockCreated);
+      s.off('block:updated', onBlockUpdated);
+      s.off('block:deleted', onBlockDeleted);
+      s.off('blocks:reordered', onBlocksReordered);
+    };
+  }, [noteId, setBlocks]);
+
   if (loading && blocks.length === 0) {
     return <div className="loading">Loading...</div>;
   }
@@ -130,6 +173,9 @@ export function NoteEditor() {
         <button onClick={() => navigate('/notes')} className="btn-back">← Back</button>
         <div className="editor-status">
           {saving ? 'Saving...' : 'Saved'}
+        </div>
+        <div className="editor-presence" title={`Online users: ${presence.length}`}>
+          👥 {presence.length}
         </div>
       </header>
 

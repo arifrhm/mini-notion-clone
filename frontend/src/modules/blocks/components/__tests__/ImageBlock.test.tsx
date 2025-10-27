@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ImageBlock } from '../ImageBlock';
 
@@ -295,6 +295,39 @@ describe('ImageBlock', () => {
       await user.click(saveButton);
       
       expect(mockOnChange).toHaveBeenCalledWith(specialUrl);
+    });
+  });
+
+  describe('Invalid URL Handling', () => {
+    it('should show red tooltip above input for invalid URL', async () => {
+      const user = userEvent.setup();
+      const { container } = render(<ImageBlock content="" onChange={mockOnChange} />);
+
+      const input = screen.getByPlaceholderText(/enter image url/i);
+      await user.type(input, 'asasasdadasd');
+
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      await user.click(saveButton);
+
+      const tooltip = await screen.findByRole('alert');
+      expect(tooltip).toHaveTextContent(/invalid image url/i);
+      expect(input).toHaveClass('input-error');
+
+      // Ensure tooltip is rendered before the input (above in DOM order)
+      // This checks visual order in a flex-column container via DOM sequence
+      expect(tooltip.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('should enter edit mode and show error when image fails to load', async () => {
+      render(<ImageBlock content="https://example.com/broken.jpg" onChange={mockOnChange} />);
+
+      const img = screen.getByRole('img');
+      fireEvent.error(img);
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent(/image failed to load/i);
+        expect(screen.getByPlaceholderText(/image failed to load|invalid image url|enter image url/i)).toBeInTheDocument();
+      });
     });
   });
 });

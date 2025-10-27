@@ -17,4 +17,8 @@ export class UpdateBlockDto {
   @IsNumber()
   @IsOptional()
   order_index?: number;
+
+  @IsString()
+  @IsOptional()
+  expected_updated_at?: string;
 }

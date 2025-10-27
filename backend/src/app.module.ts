@@ -8,6 +8,7 @@ import { User } from './users/user.entity';
 import { Note } from './notes/note.entity';
 import { Block } from './blocks/block.entity';
 import { ENV_CONFIG, DEFAULT_VALUES } from './config/env.config';
+import { CollabModule } from './collab/collab.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ENV_CONFIG, DEFAULT_VALUES } from './config/env.config';
     AuthModule,
     NotesModule,
     BlocksModule,
+    CollabModule,
   ],
 })
 export class AppModule {}
