@@ -254,10 +254,6 @@ To test the application:
 - Tags and categories
 - Dark mode
 
-## 📝 License
-
-MIT
-
 ## 👥 Author
 
 Developed as a fullstack assessment project demonstrating:
